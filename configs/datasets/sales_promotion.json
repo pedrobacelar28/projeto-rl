@@ -1,0 +1,39 @@
+{
+  "env_id": "sales_promotion",
+  "seed": 0,
+  "tiers": {
+    "dev": {
+      "num_train_episodes": 500,
+      "num_val_episodes": 100
+    },
+    "final": {
+      "num_train_episodes": 7000,
+      "num_val_episodes": 1000
+    }
+  },
+  "behaviors": {
+    "ticket-band": {
+      "behavior_policy": "ticket_band",
+      "behavior_epsilon": 0.1,
+      "ticket_band_thresholds": [
+        1.8,
+        12.0
+      ],
+      "ticket_band_actions": [
+        [
+          5,
+          0.7
+        ],
+        [
+          3,
+          0.85
+        ],
+        [
+          1,
+          0.95
+        ]
+      ],
+      "description": "Coupon offer by band of average fee (terciles of the collection users), mixed with 10% uniform exploration."
+    }
+  }
+}

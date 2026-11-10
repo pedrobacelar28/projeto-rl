@@ -1,0 +1,14 @@
+{
+  "learning_rate": 0.0003,
+  "policy_hidden_layers": 2,
+  "policy_temperature": 1.0,
+  "cql_alpha": 1.0,
+  "tiers": {
+    "dev": {
+      "policy_hidden_dim": 128
+    },
+    "final": {
+      "policy_hidden_dim": 256
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "slug": "sales-promotion",
+  "label": "SalesPromotion",
+  "description": "NeoRL coupon-allocation simulator (Apache-2.0) driven by a user model learned from real users; one episode is one user over 30 days.",
+  "action_type": "discrete",
+  "feature_mix": "heterogeneous",
+  "normalization": {
+    "low": "random",
+    "high": "ticket_band"
+  },
+  "run": {
+    "env_kwargs": {
+      "users": {
+        "collect": [
+          0,
+          8000
+        ],
+        "evaluate": [
+          8000,
+          10000
+        ]
+      },
+      "horizon": 30
+    },
+    "gamma": 1.0
+  }
+}

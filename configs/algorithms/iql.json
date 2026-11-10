@@ -1,0 +1,16 @@
+{
+  "learning_rate": 0.0003,
+  "policy_hidden_layers": 2,
+  "policy_temperature": 1.0,
+  "iql_expectile_tau": 0.7,
+  "iql_temperature_beta": 3.0,
+  "iql_advantage_clip": 100.0,
+  "tiers": {
+    "dev": {
+      "policy_hidden_dim": 128
+    },
+    "final": {
+      "policy_hidden_dim": 256
+    }
+  }
+}

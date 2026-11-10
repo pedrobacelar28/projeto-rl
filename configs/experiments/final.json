@@ -1,0 +1,25 @@
+{
+  "description": "The experiment: every environment and method on the final datasets, three seeds. Add a representation to the list to compare it against the reference.",
+  "datasets": [
+    "epicare/soc/final",
+    "industrial-benchmark/mediocre/final",
+    "sales-promotion/ticket-band/final",
+    "simbank/bank/final"
+  ],
+  "methods": [
+    "bc",
+    "dqn",
+    "iql",
+    "cql"
+  ],
+  "representations": [
+    "standardize"
+  ],
+  "reference_representation": "standardize",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "progress_interval_seconds": 30
+}

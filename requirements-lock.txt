@@ -1,0 +1,16 @@
+# Reference environment (Python 3.13, 2026-11-09).
+# The EpiCare, Industrial Benchmark, SimBank, and SalesPromotion cores are
+# vendored under third_party/ and installed together with projeto_rl by
+# `pip install -e . --no-deps`.
+gymnasium==1.3.0
+numpy==2.4.3
+pandas==3.0.2
+torch==2.10.0
+scipy==1.17.1
+tqdm==4.67.1
+rich==14.2.0
+simpy==4.1.2
+pm4py==2.7.23.12
+matplotlib==3.10.8
+pytest==9.1.1
+pre-commit==4.7.0

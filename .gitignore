@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+runs/
+/datasets/
+reports/
+plots/
+processed/
+artifacts/
+
+*.sqlite3
+*.pt
+*.pth
+*.pkl
+*.npz
+*.log
+
+# The vendored SalesPromotion user model and initial states are runtime assets
+# of the simulator, not generated experiment artifacts.
+!third_party/sales-promotion/sales_promotion/assets/*

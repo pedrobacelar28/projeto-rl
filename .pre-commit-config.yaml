@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Data never enters git; this stops large files at commit time. The
+      # vendored SalesPromotion user model and initial states are simulator code.
+      - id: check-added-large-files
+        exclude: ^third_party/sales-promotion/sales_promotion/assets/

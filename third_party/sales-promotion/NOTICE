@@ -1,0 +1,39 @@
+This directory vendors the NeoRL SalesPromotion user model and its transition logic.
+
+Source: https://github.com/polixir/NeoRL, branch `benchmark` (commit 1c2853d,
+2024-11-21), directory `neorl/neorl_envs/SalesPromotion/sales_promo/`.
+Paper: Qin et al., "NeoRL: A Near Real-World Benchmark for Offline
+Reinforcement Learning", NeurIPS 2022 Datasets and Benchmarks.
+Licensed under the Apache License, Version 2.0; see LICENSE (identical to
+upstream).
+
+Vendored files:
+- `env/marketing.py` -> `sales_promotion/marketing.py`
+- `models/env_model.py`, `models/__init__.py`, `models/torch/*.py` ->
+  `sales_promotion/models/` (an empty `models/torch/__init__.py` was added so
+  the directory is a regular package)
+- `env/user_model.pt`, `env/test_initial_states_10000_people.npy`,
+  `env/evaluation_init_obs.npy` -> `sales_promotion/assets/` (unchanged)
+Not vendored: `env/sp_env.py` (the `gym` wrapper; the projeto-rl adapter
+`projeto_rl/envs/sales_promotion.py` reproduces its observable-state update and
+reward), `env/env_instance.py`, and the rest of NeoRL.
+
+Local modifications:
+- `marketing.py`: no `gym`, `neorl.core`, or `tqdm` imports; `MarketingEnv`
+  is a plain class. The constructor takes a `torch.Generator` and a
+  `numpy.random.RandomState` instead of an optional seed that set the global
+  torch and numpy states; every `torch.bernoulli` and `torch.randn` of the
+  user rules uses that generator. `step` also returns the per-user cost and
+  GMV arrays (the original returned only the totals). The debug `print`, the
+  deprecated `_forloop_step`, the gym space setters, `seed`, and
+  `validation_length` were removed.
+- `models/torch/policy_cont.py`, `models/torch/policy_disc.py`,
+  `models/env_model.py`: `select_action` takes the generator (keyword
+  `generator`) and samples with `torch.normal` / `torch.multinomial` on it,
+  which draw exactly as the original `Normal.sample()`,
+  `Categorical.sample()`, and `Tensor.multinomial(1)`;
+  `EnsembleVenvModel.select_action` also takes `np_rng` for the ensemble
+  member choice (the original used `np.random.randint`).
+With the same seeds, the port reproduces the original `MarketingEnv.step`
+exactly (checked on 200 users over 5 days: maximum absolute difference 0.0 in
+costs, GMV, user actions, and states).

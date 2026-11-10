@@ -1,0 +1,28 @@
+This directory vendors the SimBank simulator.
+
+Source: Zenodo record 10.5281/zenodo.15574272, "SimBank v1.0.0"
+(JakobDeMoorKULstudent/SimBank-v1.0.0.zip, snapshot ac25e11), licensed CC BY 4.0
+(see LICENSE). The later commits on GitHub carry no license and are not used.
+Paper: De Moor et al., "SimBank: from Simulation to Solution in Prescriptive
+Process Monitoring" (arXiv:2506.14772).
+
+Vendored files (from `SimBank/`): `simulation.py`, `activity_execution.py`,
+`extra_flow_conditions.py`, `petri_net_generator.py`. Not vendored:
+`confounding_level.py` (not needed; it draws from numpy's global random state),
+the generator guide notebook, the experiment scripts, and `src/`. The default
+`dataset_params` of the guide notebook (`SimBank_Generator_Guide.ipynb`) and
+its bank policy `get_bank_best_action` are reproduced in
+`configs/envs/simbank.json` and `projeto_rl/envs/simbank.py`.
+
+Local modifications:
+- `simulation.py`: the sibling modules are imported from the `simbank` package
+  (`from simbank.extra_flow_conditions import ...`) instead of the script
+  directory.
+- `petri_net_generator.py`: removed the unused imports of
+  `pm4py.objects.petri_net.properties`, the pm4py playout simulator, the log
+  converter, and the Petri-net visualizer, and the `vizualize_net` function
+  that used the visualizer (it requires Graphviz and is never called).
+No change to the simulation logic or to the random number streams, which
+already use one `random.Random` object per generator.
+
+Dependencies installed (not vendored): `simpy` (MIT) and `pm4py` (AGPL-3.0).

@@ -1,0 +1,24 @@
+{
+  "description": "Smoke test: every environment, method, and representation on the small dev datasets, one seed.",
+  "datasets": [
+    "epicare/soc/dev",
+    "industrial-benchmark/mediocre/dev",
+    "sales-promotion/ticket-band/dev",
+    "simbank/bank/dev"
+  ],
+  "methods": [
+    "bc",
+    "dqn",
+    "iql",
+    "cql"
+  ],
+  "representations": [
+    "raw",
+    "standardize"
+  ],
+  "reference_representation": "standardize",
+  "seeds": [
+    0
+  ],
+  "progress_interval_seconds": 30
+}

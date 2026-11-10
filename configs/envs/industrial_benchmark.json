@@ -1,0 +1,29 @@
+{
+  "slug": "industrial-benchmark",
+  "label": "Industrial Benchmark",
+  "description": "Siemens Industrial Benchmark (MIT): stochastic industrial-control simulator, 6 observed variables, 27 discrete steering actions.",
+  "action_type": "discrete",
+  "feature_mix": "homogeneous",
+  "normalization": {
+    "low": "random",
+    "high": "mediocre"
+  },
+  "run": {
+    "env_kwargs": {
+      "setpoints": [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100
+      ],
+      "horizon": 250
+    },
+    "gamma": 0.99
+  }
+}

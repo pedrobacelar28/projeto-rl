@@ -1,0 +1,24 @@
+This directory vendors the Python implementation of the Industrial Benchmark.
+
+Source: https://github.com/siemens/industrialbenchmark, directory
+`industrial_benchmark_python/` (commit afeed69, 2022-12-06).
+Authors: Stefan Depeweg and Alexander Hentschel (Siemens AG); benchmark paper:
+Hein et al., "A Benchmark Environment Motivated by Industrial Control
+Problems", IEEE SSCI 2017 (arXiv:1709.09480).
+Licensed under the MIT License, as stated in the header of every vendored
+file; see LICENSE. (The repository's top-level LICENCE.txt is Apache-2.0 and
+covers the Java implementation.)
+
+Vendored files: `__init__.py`, `IDS.py`, `EffectiveAction.py`, and
+`goldstone/`. Not vendored: `IBGym.py` (depends on the old `gym` package; the
+projeto-rl adapter `projeto_rl/envs/industrial_benchmark.py` reproduces the discrete
+action table and the `reward_type="classic"` reward it uses), tests, examples,
+and the Java implementation.
+
+Local modifications to `IDS.py`:
+- Random numbers: the constructor takes a `numpy.random.Generator` (`rng`, now
+  the first argument) and every draw uses it; the original seeded and drew
+  from numpy's global random state (`np.random.seed`, `np.random.rand`, ...).
+  The `inital_seed` argument was removed.
+- `np.float(...)`, removed in NumPy 1.24, is replaced by `float(...)`.
+No other file was changed.

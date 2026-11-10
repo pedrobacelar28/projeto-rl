@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "projeto-rl"
+version = "0.2.0"
+description = "Does a better vector representation of tabular states improve offline RL? Four simulators, four classic methods."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy",
+  "pandas",
+  "torch",
+  "gymnasium",
+  "scipy",  # EpiCare
+  "rich",
+  "tqdm",
+  "simpy",  # SimBank
+  "pm4py",  # SimBank (AGPL-3.0; installed, not vendored)
+  "matplotlib",  # loss curves in the summary
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pre-commit"]
+
+[project.scripts]
+projeto-rl = "projeto_rl.cli:main"
+
+[tool.setuptools.packages.find]
+# The vendored simulators are installed as top-level packages next to projeto_rl,
+# straight from third_party/, so no sys.path manipulation is needed.
+where = [
+  ".",
+  "third_party/epicare",
+  "third_party/industrial-benchmark",
+  "third_party/simbank",
+  "third_party/sales-promotion",
+]
+include = ["projeto_rl*", "epicare*", "industrial_benchmark_python*", "simbank*", "sales_promotion*"]
+
+[tool.setuptools.package-data]
+sales_promotion = ["assets/*"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".",
+  "third_party/epicare",
+  "third_party/industrial-benchmark",
+  "third_party/simbank",
+  "third_party/sales-promotion",
+]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "slow: correctness against a known truth, or longer than 10 s on its own; skipped by the quick check (pytest -m \"not slow\")",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+# Vendored upstream code keeps its original formatting.
+extend-exclude = ["third_party"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+# The formatter wraps code; the few lines it cannot wrap are long strings.
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["projeto_rl"]

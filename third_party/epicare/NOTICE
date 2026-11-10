@@ -1,0 +1,48 @@
+This directory vendors the core EpiCare environment and reference policies.
+
+Source: https://github.com/Grosenick-Lab-Cornell/EpiCare (compared with
+`main` at commit b4288ec, 2025-11-08)
+Authors: Mason Hargrave, Alex Spaeth, and Logan Grosenick (EpiCare paper,
+NeurIPS 2024 Datasets and Benchmarks).
+Licensed under the Apache License, Version 2.0; see LICENSE (identical to
+upstream).
+
+Local modifications to `epicare/envs.py`:
+- Gymnasium API: imports `gymnasium` instead of `gym`; always builds Gymnasium
+  spaces (`use_gymnasium` is accepted and ignored); `reset()` returns
+  `(observation, {})` and `step()` returns
+  `(observation, reward, terminated, truncated, info)`, and `reset()` calls
+  `super().reset(seed=seed)`. Reaching `max_visits` (checked with `>=`
+  instead of `==`) sets `truncated = True` and `terminated = False`
+  (upstream set `terminated = True`); an adverse event or remission still
+  sets `terminated = True`. The `use_gymnasium` default changed from `False`
+  to `True`, which has no effect because the argument is ignored.
+- Random numbers: episode randomness (patient modifiers, initial disease,
+  remission, disease transitions, symptoms) comes from a per-instance
+  `numpy.random.Generator` seeded by the constructor seed and re-seeded by
+  `reset(seed=...)`. Upstream used the global NumPy random state, so a seed
+  did not reproduce episodes. The constructor seed is also stored as
+  `environment_seed`.
+- `_adverse_event_probability` evaluates the multivariate-normal CDF with a
+  fixed quasi-Monte Carlo seed (`seed=0`). Upstream used the global random
+  state, so the expected rewards used by the SMART, Standard-of-Care, and
+  Oracle reference policies varied slightly between processes. Sampled adverse
+  events do not use this function.
+- `reset()` returns the initial symptoms rounded to one decimal, as `step()`
+  already did upstream; upstream returned them unrounded.
+- Dtypes: `step()` casts the action to `int`, the reward to `float`, and
+  observations to `float32`.
+- On remission, `info["disease_pre_treatment"]` is the disease before the
+  treatment; upstream reported `"Remission"`. On the other paths it is still
+  the disease after the transition, as upstream.
+- `time_to_remission` starts as `None` instead of `-1`. `handle_remission`
+  records the time only when the attribute is `None`, so upstream never
+  recorded it.
+- The module-level `register(id="EpiCare-v0", ...)` call was removed.
+
+Local modification to `epicare/policies.py`:
+- The Q-values in the stochastic reference policy are converted to a float64
+  array before arithmetic, which fixes their dtype; the values are unchanged.
+
+Both modified files carry a header comment pointing to this NOTICE, as the
+Apache License 2.0, section 4(b), requires.

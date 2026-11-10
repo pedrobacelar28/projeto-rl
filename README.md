@@ -1,1 +1,139 @@
-# projeto-rl
+# Tabular state representations for offline RL
+
+**Question.** Does a better vector representation of tabular (structured)
+states improve the return of policies learned offline?
+
+**Protocol.** Each of four simulators provides one fixed offline dataset,
+logged by a behavior policy. Each classic offline RL method (`bc`, `dqn`,
+`iql`, `cql`) is trained on that dataset twice with the same seeds and
+hyperparameters: once on the standardized observation (`representation =
+"standardize"`, the reference) and once on the observation transformed by
+each representation under study. The checkpoint is
+selected by the offline validation loss, and the deployed policy is scored by
+its mean return in the online simulator, also reported as a normalized score:
+
+```
+score = 100 * (R - R_random) / (R_behavior - R_random)
+```
+
+0 means "as good as the random policy", 100 "as good as the policy that logged
+the data". Each representation is compared with `standardize` by a paired
+difference over seeds. There is no off-policy evaluation: the simulator is the judge, and
+it is never used for training or model selection.
+
+The repository ships two representations: `raw` (identity) and `standardize`
+(z-score fitted on the train split). A first experiment showed that `raw`
+breaks the networks on environments whose columns have very different scales,
+so `standardize` is the reference.
+Tabular representation techniques are added as new modules (see
+[docs/representations.md](docs/representations.md)).
+
+It is research code for a university project, not a decision-support system.
+
+## Environments
+
+Generated from `configs/` and the environment registry (`projeto-rl catalog`
+lists the datasets):
+
+| Environment | Columns (type) | Actions | Group | Behavior policy (dataset) | Score 0 / 100 |
+|---|---|---:|---|---|---|
+| `epicare` | 8: 8 numeric | 16 | homogeneous | `soc` + ε=0.1 | `random` / `soc` |
+| `industrial-benchmark` | 6: 6 numeric | 27 | homogeneous | `mediocre` + ε=0.1 | `random` / `mediocre` |
+| `sales-promotion` | 5: 4 numeric, 1 cyclic | 48 | heterogeneous | `ticket_band` + ε=0.1 | `random` / `ticket_band` |
+| `simbank` | 8: 1 categorical, 5 numeric, 2 ordinal | 2 | heterogeneous | `bank` + ε=0.1 | `random` / `bank` |
+
+The two homogeneous tables (only numeric columns) are the contrast for the two
+heterogeneous ones (categorical, ordinal, cyclic, and heavy-tailed numeric
+columns). Sources, column meanings, and every adaptation are in
+[docs/environments.md](docs/environments.md).
+
+| Method | Summary |
+|---|---|
+| `bc` | Behavior cloning: masked cross-entropy on logged actions |
+| `dqn` | Offline DQN: masked one-step TD regression with a soft-updated target network |
+| `iql` | Discrete IQL: expectile value, twin critics, advantage-weighted actor |
+| `cql` | Discrete CQL: TD regression plus a conservative logsumexp penalty |
+
+## Install
+
+```bash
+conda create -n projeto-rl python=3.13 && conda activate projeto-rl
+pip install -r requirements-lock.txt   # pinned reference versions
+pip install -e . --no-deps             # projeto_rl + the four vendored simulators
+```
+
+This installs the `projeto-rl` command (also `python -m projeto_rl`).
+
+## Run the experiment
+
+```bash
+projeto-rl run-all configs/experiments/final.json --dry-run     # what is left to do
+projeto-rl run-all configs/experiments/final.json --gpus 0 --jobs 32
+```
+
+`run-all` builds the four datasets, evaluates the random and behavior policies
+that normalize the scores, trains 4 environments x 4 methods x 1
+representation x 3 seeds = 48 runs, and prints the summary tables. The
+terminal shows the current stage, the elapsed time of the stage and of the
+whole run, and the estimated time left for training. Interrupting it and
+running the same command again resumes where it stopped. For a long run:
+
+```bash
+nohup projeto-rl run-all configs/experiments/final.json --gpus 0 --jobs 32 > artifacts/run-all.log 2>&1 &
+tail -f artifacts/run-all.log
+```
+
+`configs/experiments/dev.json` is the same experiment on small datasets with
+one seed (a few minutes; it is the smoke test).
+
+Results land in `artifacts/reports/summary/<timestamp>/`: `summary.md` (the
+tables), `runs.csv`, `by_method.csv`, `comparison.csv`, `summary.json`, and
+`loss_curves/<dataset>.png` (training and validation loss of every run).
+
+## Step by step
+
+```bash
+projeto-rl dataset build simbank/bank/dev
+projeto-rl baselines simbank/bank/dev
+projeto-rl train simbank/bank/dev dqn --set representation='"standardize"'
+projeto-rl research summarize configs/experiments/dev.json
+```
+
+## Repository layout
+
+```text
+projeto_rl/
+  envs/             environment registry and one adapter per simulator
+  representations/  representation registry: raw, standardize, ...
+  algorithms/       bc, dqn, iql, cql
+  data/             dataset schema, loading, and collection
+  training.py       the offline training loop (fits the representation on train)
+  evaluation.py     simulator evaluation
+  runner.py         one run: train -> evaluate -> artifacts
+  config.py         layered configs, the derived catalog, experiment files
+  operations/       run artifacts, job queue, baselines, summary statistics
+  cli/              the `projeto-rl` command
+configs/            protocol, algorithms, environments, datasets, experiments
+third_party/        vendored simulators (see THIRD_PARTY_NOTICES.md)
+tests/              contract and known-truth tests
+docs/               documentation
+artifacts/          generated datasets, runs, reports (git-ignored)
+```
+
+## Documentation
+
+- [Environments](docs/environments.md)
+- [Representations](docs/representations.md): the contract and how to add one
+- [Experiments](docs/experiments.md): protocol, normalization, statistics
+- [Algorithms](docs/algorithms.md)
+- [Configuration](docs/configuration.md)
+- [Data schema](docs/data-schema.md)
+- [Command line and artifacts](docs/operations.md)
+- [Development and tests](docs/development.md)
+
+## Third-party code
+
+- **Vendored simulators** keep their licenses (Apache-2.0, MIT, CC BY 4.0);
+  see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **`pm4py`**, needed by SimBank, is installed as a dependency and is
+  AGPL-3.0-or-later.

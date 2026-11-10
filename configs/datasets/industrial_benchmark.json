@@ -1,0 +1,23 @@
+{
+  "env_id": "industrial_benchmark",
+  "seed": 0,
+  "tiers": {
+    "dev": {
+      "num_train_episodes": 50,
+      "num_val_episodes": 10
+    },
+    "final": {
+      "num_train_episodes": 1000,
+      "num_val_episodes": 100
+    }
+  },
+  "behaviors": {
+    "mediocre": {
+      "behavior_policy": "mediocre",
+      "behavior_epsilon": 0.1,
+      "mediocre_target": 50,
+      "mediocre_deadband": 5,
+      "description": "A simple operator rule that keeps velocity, gain, and shift near 50, mixed with 10% uniform exploration."
+    }
+  }
+}

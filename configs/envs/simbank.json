@@ -1,0 +1,75 @@
+{
+  "slug": "simbank",
+  "label": "SimBank",
+  "description": "Loan-application process simulator (CC BY 4.0) with a true counterfactual outcome; the bank decides when to contact headquarters.",
+  "action_type": "discrete",
+  "feature_mix": "heterogeneous",
+  "normalization": {
+    "low": "random",
+    "high": "bank"
+  },
+  "run": {
+    "env_kwargs": {
+      "log_cols": [
+        "case_nr",
+        "activity",
+        "timestamp",
+        "elapsed_time",
+        "cum_cost",
+        "est_quality",
+        "unc_quality",
+        "amount",
+        "interest_rate",
+        "discount_factor",
+        "outcome",
+        "quality",
+        "noc",
+        "nor",
+        "min_interest_rate"
+      ],
+      "simulation_start": "2024-03-20T08:00:00",
+      "intervention": {
+        "name": "time_contact_HQ",
+        "data_impact": "direct",
+        "actions": [
+          "do_nothing",
+          "contact_headquarters"
+        ],
+        "action_width": 2,
+        "action_depth": 4,
+        "activities": [
+          "do_nothing",
+          "contact_headquarters"
+        ],
+        "column": "activity",
+        "start_control_activity": [
+          "start_standard"
+        ],
+        "end_control_activity": [
+          "start_standard",
+          "email_customer",
+          "call_customer"
+        ]
+      },
+      "policies_info": {
+        "general": "real",
+        "choose_procedure": {
+          "amount": 50000,
+          "est_quality": 5
+        },
+        "time_contact_HQ": "real",
+        "min_quality": 2,
+        "max_noc": 3,
+        "max_nor": 1,
+        "min_amount_contact_cust": 50000
+      },
+      "base_seeds": {
+        "collect": 82,
+        "evaluate": 130
+      },
+      "outcome_unit": 1000.0,
+      "max_skipped_cases": 100
+    },
+    "gamma": 1.0
+  }
+}

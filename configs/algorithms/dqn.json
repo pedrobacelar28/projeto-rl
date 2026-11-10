@@ -1,0 +1,8 @@
+{
+  "learning_rate": 0.001,
+  "tau": 0.01,
+  "target_network_frequency": 256,
+  "policy_hidden_dim": 128,
+  "policy_hidden_layers": 2,
+  "policy_temperature": 1.0
+}
