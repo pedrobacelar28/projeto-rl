@@ -82,6 +82,10 @@ class RepresentationPolicy(Policy):
         self.policy = policy
         self.representation = representation
 
+    @property
+    def stateless(self) -> bool:
+        return self.policy.stateless
+
     def _represent(self, obs) -> np.ndarray:
         return self.representation.transform(np.asarray(obs, dtype=np.float32)[None, :])[0]
 
@@ -99,3 +103,9 @@ class RepresentationPolicy(Policy):
 
     def act(self, obs, info, deterministic=True) -> int:
         return self.policy.act(self._represent(obs), info, deterministic=deterministic)
+
+    def act_batch(self, observations, infos, deterministic=True) -> list[int]:
+        # One transform for all the episodes: a learned representation costs
+        # about the same for one observation as for a batch of them.
+        represented = self.representation.transform(np.asarray(observations, dtype=np.float32))
+        return self.policy.act_batch(represented, infos, deterministic=deterministic)

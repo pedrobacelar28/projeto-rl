@@ -67,6 +67,7 @@ TINY_HYPERPARAMETERS = {
         "eval_episodes": 2,
         "eval_seed_base": 100_000,
         "eval_deterministic": True,
+        "eval_parallel_episodes": 2,
         "save_trajectories": True,
         "show_progress": False,
     },

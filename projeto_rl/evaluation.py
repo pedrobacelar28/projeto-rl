@@ -23,6 +23,73 @@ def _mean(frame: pd.DataFrame, column: str) -> float:
     return float(values.mean()) if values.notna().any() else 0.0
 
 
+def _episode(env, policy, *, episode_id: int, seed: int, method: str):
+    """One episode as a coroutine: yields ``(obs, info)``, is sent the action, returns ``(episode, rows)``."""
+
+    policy.reset_episode()
+    obs, info = env.reset(seed=seed)
+    initial_state = int(info["state_id"])
+    metric_rows = [env.transition_metrics(info)]
+    actions: list[int] = []
+    rows: list[dict] = []
+    total_reward = 0.0
+    done = False
+    while not done:
+        action = yield obs, info
+        if np.asarray(info["action_mask"])[action] <= 0:
+            raise ValueError(
+                f"Policy {method!r} emitted inadmissible action {action}; admissible={info['admissible_actions']}"
+            )
+        current_metrics = env.transition_metrics(info)
+        next_obs, reward, terminated, truncated, next_info = env.step(action)
+        policy.observe(action, reward)
+        done = bool(terminated or truncated)
+        rows.append(
+            {
+                "episode_id": episode_id,
+                "eval_seed": seed,
+                "t": len(actions),
+                "state_id": int(info["state_id"]),
+                "action": action,
+                "action_label": env.action_label(action),
+                **env.export_columns(info, action),
+                "reward": float(reward),
+                "done": done,
+                **{f"metric_{name}": float(value) for name, value in current_metrics.items()},
+                **{
+                    f"feature_{name}": float(value)
+                    for name, value in zip(env.spec.feature_names, np.asarray(obs, dtype=np.float32))
+                },
+            }
+        )
+        actions.append(action)
+        total_reward += float(reward)
+        obs, info = next_obs, next_info
+        metric_rows.append(env.transition_metrics(info))
+
+    outcome = env.episode_metrics(total_reward=total_reward, final_info=info, transition_metrics=metric_rows)
+    stability_l1, abrupt_rate = action_stability(actions, env.action_distance, abrupt_fn=env.action_is_abrupt)
+    episode = {
+        "episode_id": episode_id,
+        "eval_seed": seed,
+        "return": float(total_reward),
+        "success": bool(outcome["success"]),
+        "length": len(actions),
+        "initial_state": initial_state,
+        "action_stability_l1": stability_l1,
+        "abrupt_jump_rate": abrupt_rate,
+        **{f"outcome_{name}": value for name, value in outcome.items() if name != "success"},
+    }
+    for name in env.spec.metric_names:
+        values = [row[name] for row in metric_rows]
+        episode[f"initial_{name}"] = float(values[0])
+        episode[f"mean_{name}"] = float(np.mean(values))
+        episode[f"final_{name}"] = float(values[-1])
+    for row in rows:
+        row["episode_success"] = episode["success"]
+    return episode, rows
+
+
 def evaluate_policy(
     policy,
     *,
@@ -41,94 +108,74 @@ def evaluate_policy(
     ``mean_success``, ``mean_length``, action-change statistics, and latency),
     ``mean_<metric>`` for every per-step metric declared by the
     environment, and ``outcome_<name>`` for every extra episode outcome.
+
+    A stateless policy acting greedily runs ``eval_parallel_episodes``
+    episodes side by side, each in its own environment, and chooses their
+    actions in one :meth:`Policy.act_batch` call per step. Every episode is
+    still seeded by its own index, so the episodes are the ones a sequential
+    evaluation produces; the latency is then the time of the call divided by
+    the number of episodes in it. Any other policy runs one episode at a time.
     """
 
+    num_episodes = int(num_episodes)
     deterministic = bool(config.get("eval_deterministic", True) if deterministic is None else deterministic)
-    env = make_env(config, purpose="evaluate")
+    # Side by side only when the order of the calls cannot matter: no state
+    # between calls and no random draws from the policy's generator.
+    parallel = int(config.get("eval_parallel_episodes", 1)) if policy.stateless and deterministic else 1
+    if parallel <= 0:
+        raise ValueError("eval_parallel_episodes must be > 0")
+    envs = [make_env(config, purpose="evaluate") for _ in range(max(1, min(parallel, num_episodes)))]
+    env = envs[0]
     policy.bind_env(env)
     method = str(config.get("method_id", config.get("algo", "policy")))
-    trajectories: list[dict] = []
-    episodes: list[dict] = []
+    finished: dict[int, tuple[dict, list[dict]]] = {}
     latencies: list[float] = []
-    progress_every = max(1, int(num_episodes) // 20)
-    update_progress(status="running", phase="evaluation", method_id=method, step=0, total_steps=int(num_episodes))
-    for episode_id in tqdm(
-        range(int(num_episodes)), desc=f"eval {label}", unit="ep", leave=False, disable=not show_progress
-    ):
-        policy.reset_episode()
-        obs, info = env.reset(seed=int(eval_seed_base) + episode_id)
-        initial_state = int(info["state_id"])
-        metric_rows = [env.transition_metrics(info)]
-        actions: list[int] = []
-        total_reward = 0.0
-        first_row = len(trajectories)
-        done = False
-        while not done:
-            started = time.perf_counter()
-            action = int(policy.act(obs, info, deterministic=deterministic))
-            latencies.append(time.perf_counter() - started)
-            if np.asarray(info["action_mask"])[action] <= 0:
-                raise ValueError(
-                    f"Policy {method!r} emitted inadmissible action {action}; admissible={info['admissible_actions']}"
+    progress_every = max(1, num_episodes // 20)
+    update_progress(status="running", phase="evaluation", method_id=method, step=0, total_steps=num_episodes)
+    bar = tqdm(total=num_episodes, desc=f"eval {label}", unit="ep", leave=False, disable=not show_progress)
+    waiting = iter(range(num_episodes))
+
+    def start(slot_env):
+        episode_id = next(waiting, None)
+        if episode_id is None:
+            return None
+        run = _episode(slot_env, policy, episode_id=episode_id, seed=int(eval_seed_base) + episode_id, method=method)
+        return slot_env, run, next(run)
+
+    running = [slot for slot in map(start, envs) if slot is not None]
+    while running:
+        started = time.perf_counter()
+        actions = policy.act_batch(
+            [obs for _, _, (obs, _) in running], [info for _, _, (_, info) in running], deterministic=deterministic
+        )
+        latencies.extend([(time.perf_counter() - started) / len(running)] * len(running))
+        advanced = []
+        for (slot_env, run, _), action in zip(running, actions, strict=True):
+            try:
+                advanced.append((slot_env, run, run.send(int(action))))
+                continue
+            except StopIteration as stop:
+                episode, rows = stop.value
+            finished[episode["episode_id"]] = (episode, rows)
+            bar.update(1)
+            if len(finished) == 1 or len(finished) % progress_every == 0 or len(finished) == num_episodes:
+                update_progress(
+                    status="running",
+                    phase="evaluation",
+                    method_id=method,
+                    step=len(finished),
+                    total_steps=num_episodes,
                 )
-            current_metrics = env.transition_metrics(info)
-            next_obs, reward, terminated, truncated, next_info = env.step(action)
-            policy.observe(action, reward)
-            done = bool(terminated or truncated)
-            trajectories.append(
-                {
-                    "episode_id": episode_id,
-                    "eval_seed": int(eval_seed_base) + episode_id,
-                    "t": len(actions),
-                    "state_id": int(info["state_id"]),
-                    "action": action,
-                    "action_label": env.action_label(action),
-                    **env.export_columns(info, action),
-                    "reward": float(reward),
-                    "done": done,
-                    **{f"metric_{name}": float(value) for name, value in current_metrics.items()},
-                    **{
-                        f"feature_{name}": float(value)
-                        for name, value in zip(env.spec.feature_names, np.asarray(obs, dtype=np.float32))
-                    },
-                }
-            )
-            actions.append(action)
-            total_reward += float(reward)
-            obs, info = next_obs, next_info
-            metric_rows.append(env.transition_metrics(info))
+            slot = start(slot_env)
+            if slot is not None:
+                advanced.append(slot)
+        running = advanced
 
-        outcome = env.episode_metrics(total_reward=total_reward, final_info=info, transition_metrics=metric_rows)
-        stability_l1, abrupt_rate = action_stability(actions, env.action_distance, abrupt_fn=env.action_is_abrupt)
-        episode = {
-            "episode_id": episode_id,
-            "eval_seed": int(eval_seed_base) + episode_id,
-            "return": float(total_reward),
-            "success": bool(outcome["success"]),
-            "length": len(actions),
-            "initial_state": initial_state,
-            "action_stability_l1": stability_l1,
-            "abrupt_jump_rate": abrupt_rate,
-            **{f"outcome_{name}": value for name, value in outcome.items() if name != "success"},
-        }
-        for name in env.spec.metric_names:
-            values = [row[name] for row in metric_rows]
-            episode[f"initial_{name}"] = float(values[0])
-            episode[f"mean_{name}"] = float(np.mean(values))
-            episode[f"final_{name}"] = float(values[-1])
-        episodes.append(episode)
-        for row in trajectories[first_row:]:
-            row["episode_success"] = episode["success"]
-        if episode_id == 0 or (episode_id + 1) % progress_every == 0 or episode_id + 1 == int(num_episodes):
-            update_progress(
-                status="running",
-                phase="evaluation",
-                method_id=method,
-                step=episode_id + 1,
-                total_steps=int(num_episodes),
-            )
-
-    env.close()
+    bar.close()
+    for slot_env in envs:
+        slot_env.close()
+    episodes = [finished[episode_id][0] for episode_id in range(num_episodes)]
+    trajectories = [row for episode_id in range(num_episodes) for row in finished[episode_id][1]]
     episodes_df = pd.DataFrame(episodes)
     trajectories_df = pd.DataFrame(trajectories)
     summary: dict[str, Any] = {

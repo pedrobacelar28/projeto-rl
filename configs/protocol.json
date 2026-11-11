@@ -9,6 +9,7 @@
   "max_grad_norm": 10.0,
   "eval_seed_base": 100000,
   "eval_deterministic": true,
+  "eval_parallel_episodes": 100,
   "save_trajectories": false,
   "tiers": {
     "dev": {

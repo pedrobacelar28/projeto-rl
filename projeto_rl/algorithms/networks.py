@@ -67,6 +67,8 @@ class CategoricalActor(nn.Module):
 class _TorchPolicy(Policy):
     """Greedy deployment; softmax(temperature) when a stochastic policy is requested."""
 
+    stateless = True
+
     def __init__(self, module: nn.Module, *, temperature: float = 1.0):
         super().__init__()
         self.module = module.eval()
