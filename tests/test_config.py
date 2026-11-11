@@ -106,9 +106,16 @@ def test_validation_catches_broken_configs(tmp_path):
 
 def test_experiments_load_and_reject_unknown_keys(tmp_path):
     final = load_experiment("configs/experiments/final.json")
-    assert final["seeds"] == [0, 1, 2] and final["representations"] == ["standardize"]
+    assert final["seeds"] == [0, 1, 2] and final["representations"] == [
+        "raw",
+        "standardize",
+        "spr",
+        "tjepa",
+        "tabpfn",
+        "tdjepa",
+    ]
     assert final["reference_representation"] == "standardize"
-    assert len(final["datasets"]) * len(final["methods"]) * len(final["representations"]) * len(final["seeds"]) == 48
+    assert len(final["datasets"]) * len(final["methods"]) * len(final["representations"]) * len(final["seeds"]) == 288
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({**json.loads((CONFIG_ROOT / "experiments" / "dev.json").read_text()), "tier": "x"}))
     with pytest.raises(ConfigError, match="unknown keys"):

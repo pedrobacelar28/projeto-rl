@@ -14,5 +14,14 @@ that lists its source, version, and every local modification:
 SimBank needs two installed (not vendored) packages: `simpy` (MIT) and
 `pm4py` (AGPL-3.0-or-later).
 
+The `tabpfn` representation needs the installed (not vendored) `tabpfn`
+package (Apache-2.0). The pretrained weights it downloads are licensed
+separately: TabPFN-3.5, the version in `configs/protocol.json`, is under the
+non-commercial TabPFN-3.5 License v1.0
+(https://huggingface.co/Prior-Labs/tabpfn_3_5/blob/main/LICENSE), which each
+user accepts at https://ux.priorlabs.ai before the first download. Without
+that acceptance the representation falls back to the TabPFN-2 weights, which
+download without it.
+
 Generated artifacts (datasets, checkpoints, logs, reports) are excluded from
 the source tree.

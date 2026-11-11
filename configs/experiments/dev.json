@@ -14,7 +14,11 @@
   ],
   "representations": [
     "raw",
-    "standardize"
+    "standardize",
+    "spr",
+    "tjepa",
+    "tabpfn",
+    "tdjepa"
   ],
   "reference_representation": "standardize",
   "seeds": [

@@ -19,6 +19,7 @@ dependencies = [
   "simpy",  # SimBank
   "pm4py",  # SimBank (AGPL-3.0; installed, not vendored)
   "matplotlib",  # loss curves in the summary
+  "tabpfn",  # the tabpfn representation (weights of 2.5+ are non-commercial and license-gated)
 ]
 
 [project.optional-dependencies]

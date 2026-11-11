@@ -12,5 +12,6 @@ rich==14.2.0
 simpy==4.1.2
 pm4py==2.7.23.12
 matplotlib==3.10.8
+tabpfn==9.2.0
 pytest==9.1.1
 pre-commit==4.7.0

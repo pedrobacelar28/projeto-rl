@@ -21,8 +21,17 @@ the data". Each representation is compared with `standardize` by a paired
 difference over seeds. There is no off-policy evaluation: the simulator is the judge, and
 it is never used for training or model selection.
 
-The repository ships two representations: `raw` (identity) and `standardize`
-(z-score fitted on the train split). A first experiment showed that `raw`
+The repository ships six representations: `raw` (identity), `standardize`
+(z-score fitted on the train split), `spr` (a latent encoder pretrained on
+the logged transitions with the self-predictive objective of Schwarzer et al.,
+2021), `tjepa` (a transformer over column tokens pretrained to predict
+the latent of masked columns, Thimonier et al., 2025), and `tabpfn` (row
+embeddings of the pretrained TabPFN-3.5 model given logged train rows; its
+weights are non-commercial and need a one-time license acceptance, without
+which the run warns and uses TabPFN-2 instead, see
+`docs/representations.md`), and `tdjepa` (a state encoder pretrained on the
+logged transitions to predict, by temporal differences, the latents that a
+family of policies will visit, Bagatella et al., 2026). A first experiment showed that `raw`
 breaks the networks on environments whose columns have very different scales,
 so `standardize` is the reference.
 Tabular representation techniques are added as new modules (see
@@ -72,8 +81,8 @@ projeto-rl run-all configs/experiments/final.json --gpus 0 --jobs 32
 ```
 
 `run-all` builds the four datasets, evaluates the random and behavior policies
-that normalize the scores, trains 4 environments x 4 methods x 1
-representation x 3 seeds = 48 runs, and prints the summary tables. The
+that normalize the scores, trains 4 environments x 4 methods x 6
+representations x 3 seeds = 288 runs, and prints the summary tables. The
 terminal shows the current stage, the elapsed time of the stage and of the
 whole run, and the estimated time left for training. Interrupting it and
 running the same command again resumes where it stopped. For a long run:

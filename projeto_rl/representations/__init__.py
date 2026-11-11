@@ -51,7 +51,7 @@ def load_representation(config: dict[str, Any], state: dict[str, Any]) -> Repres
 
 
 # Built-in representations register themselves on import.
-from projeto_rl.representations import raw, standardize  # noqa: E402,F401
+from projeto_rl.representations import raw, spr, standardize, tabpfn, tdjepa, tjepa  # noqa: E402,F401
 
 __all__ = [
     "Representation",

@@ -90,7 +90,7 @@ the row is positive.
   "description": "...",
   "datasets": ["epicare/soc/final", "..."],
   "methods": ["bc", "dqn", "iql", "cql"],
-  "representations": ["standardize"],
+  "representations": ["raw", "standardize", "spr", "tjepa", "tabpfn", "tdjepa"],
   "reference_representation": "standardize",
   "seeds": [0, 1, 2],
   "progress_interval_seconds": 30
