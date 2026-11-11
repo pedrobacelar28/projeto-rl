@@ -730,7 +730,7 @@ def test_tdjepa_rejects_bad_settings_and_bad_columns():
         _fitted_tdjepa(constant)
     broken = _logged_system()
     broken.next_observations[0, 1] = np.nan
-    with pytest.raises(ValueError, match="non-finite"):
+    with pytest.raises(ValueError, match="non-finite values in the next observations"):
         _fitted_tdjepa(broken)
 
 

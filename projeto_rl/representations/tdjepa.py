@@ -308,6 +308,9 @@ class TDJEPA(Representation):
         num_actions = int(train.num_actions)
         obs = torch.as_tensor(self.scaler.transform(train.observations), device=device)
         next_obs = torch.as_tensor(self.scaler.transform(train.next_observations), device=device)
+        # Checked here because a bad row only breaks the fit when a batch happens to draw it.
+        if not torch.isfinite(next_obs).all():
+            raise ValueError("The train split has non-finite values in the next observations")
         actions = F.one_hot(torch.as_tensor(train.data["actions"], dtype=torch.int64), num_actions).float().to(device)
         terminals = torch.as_tensor(train.data["terminals"], dtype=torch.float32, device=device)
         continuing = discount * (1.0 - terminals)[:, None]
