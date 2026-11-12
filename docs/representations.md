@@ -26,13 +26,14 @@ with the same hyperparameters, only on transformed inputs.
 
 ```python
 class Representation:
-    name: ClassVar[str]                                  # value of `representation` in configs
-    def __init__(self, features, config): ...            # features: tuple[FeatureSpec, ...]
-    def fit(self, train, *, seed: int) -> None: ...      # train: OfflineTransitionDataset
+    name: ClassVar[str]  # value of `representation` in configs
+
+    def __init__(self, features, config): ...  # features: tuple[FeatureSpec, ...]
+    def fit(self, train, *, seed: int) -> None: ...  # train: OfflineTransitionDataset
     def _transform(self, obs: np.ndarray) -> np.ndarray: ...  # [N, d] float32 -> [N, k]
     @property
-    def output_dim(self) -> int: ...                     # k
-    def fitted_state(self) -> dict: ...                  # what fit learned (JSON values or tensors)
+    def output_dim(self) -> int: ...  # k
+    def fitted_state(self) -> dict: ...  # what fit learned (JSON values or tensors)
     def load_fitted_state(self, state: dict) -> None: ...
 ```
 
@@ -211,6 +212,7 @@ so on a GPU it runs in half precision.
    @register_representation
    class OneHot(Representation):
        name = "onehot"
+
        def fit(self, train, *, seed): ...
        def _transform(self, obs): ...
        @property
