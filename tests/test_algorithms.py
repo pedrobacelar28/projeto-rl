@@ -16,6 +16,7 @@ from projeto_rl.data.dataset import OfflineBatch, OfflineTransitionDataset
 from projeto_rl.envs import environment_ids
 from projeto_rl.evaluation import evaluate_policy
 from projeto_rl.operations.artifacts import initial_manifest
+from projeto_rl.policies import Policy, masked_uniform
 from projeto_rl.representations import representation_names
 from projeto_rl.runner import run_experiment
 from projeto_rl.training import train_offline
@@ -130,6 +131,61 @@ def test_simulator_evaluation_is_deterministic(tiny_datasets):
     first = evaluate_policy(policy, config=config, num_episodes=3, eval_seed_base=7)
     second = evaluate_policy(policy, config=config, num_episodes=3, eval_seed_base=7)
     pd.testing.assert_frame_equal(first["trajectories"], second["trajectories"])
+
+
+@pytest.mark.parametrize("env_id", environment_ids())
+def test_side_by_side_evaluation_gives_the_episodes_of_sequential_evaluation(tiny_datasets, env_id):
+    config = tiny_run_config("dqn", env_id, tiny_datasets[env_id], representation="standardize")
+    policy = load_policy(config, train_offline(config).best_checkpoint)
+    sequential = evaluate_policy(
+        policy, config={**config, "eval_parallel_episodes": 1}, num_episodes=7, eval_seed_base=7
+    )
+    # Three environments for seven episodes: every environment is reused, and
+    # episodes of different lengths start and end at different steps.
+    parallel = evaluate_policy(policy, config={**config, "eval_parallel_episodes": 3}, num_episodes=7, eval_seed_base=7)
+    pd.testing.assert_frame_equal(parallel["trajectories"], sequential["trajectories"])
+    pd.testing.assert_frame_equal(parallel["episodes"], sequential["episodes"])
+    assert sequential["episodes"]["episode_id"].tolist() == list(range(7))
+    for key, value in sequential["summary"].items():
+        assert key == "mean_action_latency_ms" or parallel["summary"][key] == value
+
+
+class _MaskedUniform(Policy):
+    """Uniform over the admissible actions; records how many episodes each ``act_batch`` call served."""
+
+    def __init__(self, *, stateless: bool):
+        super().__init__(seed=5)
+        self.stateless = stateless
+        self.batch_sizes: list[int] = []
+
+    def action_probabilities(self, obs, info, deterministic=True):
+        return masked_uniform(info["action_mask"])
+
+    def act_batch(self, observations, infos, deterministic=True):
+        self.batch_sizes.append(len(observations))
+        return super().act_batch(observations, infos, deterministic=deterministic)
+
+
+def test_only_stateless_greedy_policies_are_evaluated_side_by_side(tiny_datasets):
+    config = {**tiny_run_config("dqn", "epicare", tiny_datasets["epicare"]), "eval_parallel_episodes": 3}
+
+    def batch_sizes(*, stateless: bool, deterministic: bool) -> set[int]:
+        policy = _MaskedUniform(stateless=stateless)
+        evaluate_policy(policy, config=config, num_episodes=4, eval_seed_base=7, deterministic=deterministic)
+        return set(policy.batch_sizes)
+
+    assert max(batch_sizes(stateless=True, deterministic=True)) == 3
+    # A policy with per-episode state, or one that draws its actions, would not
+    # see the calls in the order of a sequential evaluation.
+    assert batch_sizes(stateless=False, deterministic=True) == {1}
+    assert batch_sizes(stateless=True, deterministic=False) == {1}
+    with pytest.raises(ValueError, match="eval_parallel_episodes must be > 0"):
+        evaluate_policy(
+            _MaskedUniform(stateless=True),
+            config={**config, "eval_parallel_episodes": 0},
+            num_episodes=1,
+            eval_seed_base=7,
+        )
 
 
 def test_td_target_bootstraps_through_timeouts_but_not_terminals():

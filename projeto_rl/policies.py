@@ -45,6 +45,10 @@ class Policy:
     :meth:`reset_episode` and :meth:`observe`.
     """
 
+    #: True when one instance can act in several episodes at once: it keeps
+    #: no state between calls and reads nothing from the bound environment.
+    stateless = False
+
     def __init__(self, *, seed: int = 0):
         self.rng = np.random.default_rng(seed)
 
@@ -69,6 +73,11 @@ class Policy:
         if deterministic:
             return int(np.argmax(probabilities))
         return int(self.rng.choice(len(probabilities), p=np.asarray(probabilities, dtype=np.float64)))
+
+    def act_batch(self, observations, infos, deterministic: bool = True) -> list[int]:
+        """One action per ``(obs, info)`` pair; simulator evaluation passes one pair per running episode."""
+
+        return [self.act(obs, info, deterministic=deterministic) for obs, info in zip(observations, infos, strict=True)]
 
 
 class EpsilonMixture(Policy):

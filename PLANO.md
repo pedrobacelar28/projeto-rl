@@ -202,8 +202,8 @@ Em `projeto_rl/envs/base.py`:
 @dataclass(frozen=True)
 class FeatureSpec:
     name: str
-    kind: str              # "numeric" | "binary" | "ordinal" | "categorical" | "cyclic"
-    cardinality: int | None = None   # obrigatório para ordinal, categorical, cyclic
+    kind: str  # "numeric" | "binary" | "ordinal" | "categorical" | "cyclic"
+    cardinality: int | None = None  # obrigatório para ordinal, categorical, cyclic
 ```
 
 - `EnvSpec.features: tuple[FeatureSpec, ...]` passa a ser a fonte única;
@@ -369,12 +369,13 @@ Contrato:
 ```python
 class Representation:
     name: ClassVar[str]
+
     def __init__(self, features: tuple[FeatureSpec, ...], config: dict): ...
     def fit(self, train: OfflineTransitionDataset, *, seed: int) -> None: ...
-    def transform(self, obs: np.ndarray) -> np.ndarray: ...   # [N, d] -> [N, k] float32
+    def transform(self, obs: np.ndarray) -> np.ndarray: ...  # [N, d] -> [N, k] float32
     @property
     def output_dim(self) -> int: ...
-    def state_dict(self) -> dict: ...      # inclui as FeatureSpec e o que foi ajustado
+    def state_dict(self) -> dict: ...  # inclui as FeatureSpec e o que foi ajustado
     def load_state_dict(self, state: dict) -> None: ...
 ```
 

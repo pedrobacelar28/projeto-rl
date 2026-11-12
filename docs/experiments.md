@@ -21,6 +21,15 @@
 
 The simulator never enters steps 1-4.
 
+Step 5 runs `eval_parallel_episodes` episodes side by side, each in its own
+environment and with its own seed, and represents their observations in one
+call per step. The episodes are the ones a sequential evaluation produces
+(tested on every environment); only the time changes, because a learned
+representation costs about the same for one observation as for a batch: an
+Industrial Benchmark step with `tabpfn` went from 13.6 ms to 0.47 ms. The
+random and behavior policies, which keep per-episode state or draw their
+actions, are still evaluated one episode at a time.
+
 **Time limits are not terminal states.** A transition cut by the
 environment's time limit is logged in `timeouts`, not in `terminals`, and the
 TD target still bootstraps from the next observation there (Pardo et al.,
@@ -81,7 +90,7 @@ the row is positive.
   "description": "...",
   "datasets": ["epicare/soc/final", "..."],
   "methods": ["bc", "dqn", "iql", "cql"],
-  "representations": ["standardize"],
+  "representations": ["raw", "standardize", "spr", "tjepa", "tabpfn", "tdjepa"],
   "reference_representation": "standardize",
   "seeds": [0, 1, 2],
   "progress_interval_seconds": 30
