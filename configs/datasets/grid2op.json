@@ -1,0 +1,22 @@
+{
+  "env_id": "grid2op",
+  "seed": 0,
+  "tiers": {
+    "dev": {
+      "num_train_episodes": 50,
+      "num_val_episodes": 10
+    },
+    "final": {
+      "num_train_episodes": 2000,
+      "num_val_episodes": 200
+    }
+  },
+  "behaviors": {
+    "rule": {
+      "behavior_policy": "rule",
+      "behavior_epsilon": 0.1,
+      "rule_threshold": 0.9,
+      "description": "Do nothing until a line passes 90% of its limit, then take the action with the lowest simulated loading; mixed with 10% uniform exploration over the admissible actions."
+    }
+  }
+}

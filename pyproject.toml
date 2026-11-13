@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "projeto-rl"
 version = "0.2.0"
-description = "Does a better vector representation of tabular states improve offline RL? Four simulators, four classic methods."
+description = "Does a better vector representation of tabular states improve offline RL? Six simulators, four classic methods."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

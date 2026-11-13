@@ -56,7 +56,14 @@ def make_env(config: dict[str, Any], *, seed: int | None = None, purpose: str) -
 
 
 # Built-in environments register themselves on import.
-from projeto_rl.envs import epicare, industrial_benchmark, sales_promotion, simbank  # noqa: E402,F401
+from projeto_rl.envs import (  # noqa: E402,F401
+    citylearn,
+    epicare,
+    grid2op,
+    industrial_benchmark,
+    sales_promotion,
+    simbank,
+)
 
 __all__ = [
     "EnvAdapter",

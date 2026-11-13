@@ -1,0 +1,38 @@
+{
+  "env_id": "citylearn",
+  "seed": 0,
+  "tiers": {
+    "dev": {
+      "num_train_episodes": 50,
+      "num_val_episodes": 10
+    },
+    "final": {
+      "num_train_episodes": 1000,
+      "num_val_episodes": 100
+    }
+  },
+  "behaviors": {
+    "time-of-use": {
+      "behavior_policy": "time_of_use",
+      "behavior_epsilon": 0.1,
+      "tou_charge_hours": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "tou_charge_level": 0.2,
+      "tou_discharge_hours": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "tou_discharge_level": -0.4,
+      "description": "A home-battery schedule for a time-of-use tariff (charge 1 kWh per hour ending 10-15, discharge 2 kWh per hour ending 16-20), mixed with 10% uniform exploration."
+    }
+  }
+}

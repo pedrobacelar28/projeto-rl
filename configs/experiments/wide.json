@@ -1,0 +1,28 @@
+{
+  "description": "The two wide environments (CityLearn, 28 columns; Grid2Op, 153 columns) with every method and representation on the final datasets, three seeds: the same protocol as final.json, run apart.",
+  "datasets": [
+    "citylearn/time-of-use/final",
+    "grid2op/rule/final"
+  ],
+  "methods": [
+    "bc",
+    "dqn",
+    "iql",
+    "cql"
+  ],
+  "representations": [
+    "raw",
+    "standardize",
+    "spr",
+    "tjepa",
+    "tabpfn",
+    "tdjepa"
+  ],
+  "reference_representation": "standardize",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "progress_interval_seconds": 30
+}

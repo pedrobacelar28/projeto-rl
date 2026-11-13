@@ -1,0 +1,43 @@
+{
+  "slug": "citylearn",
+  "label": "CityLearn",
+  "description": "CityLearn 3.2 (MIT): one home's battery against a time-of-use tariff, on one year of measured load and solar generation from 17 homes; one episode is one home over one week.",
+  "action_type": "discrete",
+  "feature_mix": "heterogeneous",
+  "normalization": {
+    "low": "random",
+    "high": "time_of_use"
+  },
+  "run": {
+    "env_kwargs": {
+      "dataset": "citylearn_challenge_2022_phase_all",
+      "buildings": {
+        "collect": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "evaluate": [
+          13,
+          14,
+          15,
+          16,
+          17
+        ]
+      },
+      "horizon": 168,
+      "action_levels": 11,
+      "random_seed": 2022
+    },
+    "gamma": 0.99
+  }
+}

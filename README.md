@@ -3,7 +3,7 @@
 **Question.** Does a better vector representation of tabular (structured)
 states improve the return of policies learned offline?
 
-**Protocol.** Each of four simulators provides one fixed offline dataset,
+**Protocol.** Each of six simulators provides one fixed offline dataset,
 logged by a behavior policy. Each classic offline RL method (`bc`, `dqn`,
 `iql`, `cql`) is trained on that dataset twice with the same seeds and
 hyperparameters: once on the standardized observation (`representation =
@@ -50,10 +50,13 @@ lists the datasets):
 | `industrial-benchmark` | 6: 6 numeric | 27 | homogeneous | `mediocre` + ε=0.1 | `random` / `mediocre` |
 | `sales-promotion` | 5: 4 numeric, 1 cyclic | 48 | heterogeneous | `ticket_band` + ε=0.1 | `random` / `ticket_band` |
 | `simbank` | 8: 1 categorical, 5 numeric, 2 ordinal | 2 | heterogeneous | `bank` + ε=0.1 | `random` / `bank` |
+| `citylearn` | 28: 3 cyclic, 25 numeric | 11 | heterogeneous | `time_of_use` + ε=0.1 | `random` / `time_of_use` |
+| `grid2op` | 153: 1 binary, 29 categorical, 3 cyclic, 119 numeric, 1 ordinal | 41 | heterogeneous | `rule` + ε=0.1 | `random` / `rule` |
 
-The two homogeneous tables (only numeric columns) are the contrast for the two
+The two homogeneous tables (only numeric columns) are the contrast for the
 heterogeneous ones (categorical, ordinal, cyclic, and heavy-tailed numeric
-columns). Sources, column meanings, and every adaptation are in
+columns). `citylearn` and `grid2op` are the wide tables: they test whether the
+representations need more columns than the 5 to 8 of the first four. Sources, column meanings, and every adaptation are in
 [docs/environments.md](docs/environments.md).
 
 | Method | Summary |
@@ -67,8 +70,9 @@ columns). Sources, column meanings, and every adaptation are in
 
 ```bash
 conda create -n projeto-rl python=3.13 && conda activate projeto-rl
-pip install -r requirements-lock.txt   # pinned reference versions
-pip install -e . --no-deps             # projeto_rl + the four vendored simulators
+pip install -r requirements-lock.txt                # pinned reference versions
+pip install --no-deps -r requirements-nodeps.txt    # CityLearn and Grid2Op (their pins predate numpy 2 and pandas 3)
+pip install -e . --no-deps                          # projeto_rl + the four vendored simulators
 ```
 
 This installs the `projeto-rl` command (also `python -m projeto_rl`).
@@ -80,9 +84,9 @@ projeto-rl run-all configs/experiments/final.json --dry-run     # what is left t
 projeto-rl run-all configs/experiments/final.json --gpus 0 --jobs 32
 ```
 
-`run-all` builds the four datasets, evaluates the random and behavior policies
-that normalize the scores, trains 4 environments x 4 methods x 6
-representations x 3 seeds = 288 runs, and prints the summary tables. The
+`run-all` builds the six datasets, evaluates the random and behavior policies
+that normalize the scores, trains 6 environments x 4 methods x 6
+representations x 3 seeds = 432 runs, and prints the summary tables. The
 terminal shows the current stage, the elapsed time of the stage and of the
 whole run, and the estimated time left for training. Interrupting it and
 running the same command again resumes where it stopped. For a long run:
@@ -93,7 +97,9 @@ tail -f artifacts/run-all.log
 ```
 
 `configs/experiments/dev.json` is the same experiment on small datasets with
-one seed (a few minutes; it is the smoke test).
+one seed (it is the smoke test). `configs/experiments/wide.json` is the
+`final` protocol on the two wide environments only (144 runs), and
+`configs/experiments/wide-dev.json` its smoke test.
 
 Results land in `artifacts/reports/summary/<timestamp>/`: `summary.md` (the
 tables), `runs.csv`, `by_method.csv`, `comparison.csv`, `summary.json`, and
@@ -146,3 +152,6 @@ artifacts/          generated datasets, runs, reports (git-ignored)
   see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **`pm4py`**, needed by SimBank, is installed as a dependency and is
   AGPL-3.0-or-later.
+- **CityLearn** (MIT) and **Grid2Op** (MPL-2.0, with `lightsim2grid`,
+  MPL-2.0, and `pandapower`, BSD-3-Clause) are installed, not vendored; they
+  download their datasets on first use.
