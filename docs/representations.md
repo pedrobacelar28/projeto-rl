@@ -159,7 +159,12 @@ embedding, so a run that fell back is not comparable with a TabPFN-3.5 run:
 it is identified by the warning in the run log, by
 `representation_output_dim = 192` in the run summary, and by `version` in the
 checkpoint's representation state. Evaluation loads the version stored in the
-checkpoint and never falls back.
+checkpoint and never falls back. TabPFN-2 takes at most 10 classes, and the
+classes are the logged actions: on every environment whose context holds more
+than 10 distinct actions (all but `simbank` on the final datasets) the
+fallback fails with `TabPFNValidationError`, so `tabpfn` runs there need the
+TabPFN-3.5 weights (a model with a many-class decoder; the first `tabpfn`
+results used it on SalesPromotion's 48 actions).
 
 ### `tdjepa`
 

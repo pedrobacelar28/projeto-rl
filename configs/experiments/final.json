@@ -1,7 +1,9 @@
 {
   "description": "The experiment: every environment and method on the final datasets, three seeds. Add a representation to the list to compare it against the reference.",
   "datasets": [
+    "citylearn/time-of-use/final",
     "epicare/soc/final",
+    "grid2op/rule/final",
     "industrial-benchmark/mediocre/final",
     "sales-promotion/ticket-band/final",
     "simbank/bank/final"

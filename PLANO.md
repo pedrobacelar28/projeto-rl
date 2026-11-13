@@ -804,3 +804,101 @@ CUDA_VISIBLE_DEVICES=0 projeto-rl run-all configs/experiments/final.json --gpus 
 
 Se der falta de memória na GPU, rodar o mesmo comando com `--jobs 24`: as runs
 completas são reaproveitadas.
+
+## 7. Rodada 3 (12–13/11/2026): dois ambientes largos, `citylearn` e `grid2op`
+
+### Por quê
+
+Com 5 a 8 colunas, as representações do PR #1 (`spr`, `tjepa`, `tabpfn`,
+`tdjepa`) ficaram iguais ou um pouco abaixo de `standardize`. Hipótese do
+Pedro: há pouco a ganhar além da normalização com tão poucas colunas. Para
+testá-la sem mudar nada nos métodos nem nas representações, entram dois
+ambientes com muito mais colunas, avaliados do mesmo jeito (simulador online,
+política aleatória = 0 e comportamento com ε = 0,1 = 100).
+
+### Escolha (aprovada pelo Pedro)
+
+- Do catálogo do plano principal e de uma busca na web, só dois candidatos
+  com simulador pronto, ações discretas, política de comportamento e
+  instalação viável em Python 3.13 / numpy 2 / pandas 3: CityLearn 3.2 e
+  Grid2Op case 14. Sinergym (precisa do EnergyPlus), KDD98 e RL4RS (exigem
+  ajustar um simulador nosso) e os demais ficaram de fora.
+- `citylearn` (28 colunas, dados medidos de 17 casas): a regra de
+  comportamento é `time_of_use` (carregar 1 kWh/h nas horas 10–15, descarregar
+  2 kWh/h nas horas 16–20). As regras do próprio CityLearn foram escritas para
+  outra unidade de ação e perdem para a bateria parada; a de autoconsumo é
+  forte demais (o ótimo com informação perfeita fica só ~8% acima dela).
+  Medido em 40 semanas por casa, com `time_of_use` = 100 e aleatória = 0:
+  bateria parada 77–130, autoconsumo 108–135.
+- `grid2op` (153 colunas): os cenários são **sintéticos** e o download **não
+  declara licença**; o Pedro aceitou porque é o único candidato pronto com
+  centenas de colunas de tipos mistos. Recompensa: a do L2RPN por linha;
+  blackout é terminal. A regra (`rule`, limiar 0,9 com `obs.simulate`) nunca
+  perdeu a rede em 30 episódios de um dia; com ε = 0,1 os dias do dataset terminam
+  em blackout depois de ~90 passos em média (a metodologia de ε foi mantida).
+
+### O que mudou
+
+Arquivos novos: `projeto_rl/envs/citylearn.py`, `projeto_rl/envs/grid2op.py`,
+`configs/envs/{citylearn,grid2op}.json`, `configs/datasets/{citylearn,grid2op}.json`,
+`configs/experiments/wide.json` (os dois ambientes, 144 runs) e
+`wide-dev.json` (seu smoke), `requirements-nodeps.txt`,
+`tests/test_citylearn.py`, `tests/test_grid2op.py`. Alterados:
+`projeto_rl/envs/__init__.py`, `projeto_rl/cli/info.py` (`doctor` lista os
+pacotes novos), `configs/experiments/{dev,final}.json` (6 ambientes; o
+`final` vira 432 runs), `tests/{conftest,test_envs,test_config,test_operations}.py`,
+`requirements-lock.txt`, `README.md`, `THIRD_PARTY_NOTICES.md`,
+`docs/environments.md`, `docs/representations.md`, `pyproject.toml`,
+`CLAUDE.md`.
+
+- CityLearn e Grid2Op são **instalados, não vendorizados**:
+  `pip install --no-deps -r requirements-nodeps.txt`, porque os pinos
+  declarados (numpy < 2, pandas < 3, scikit-learn ≤ 1.2.2) não resolvem em
+  Python 3.13. As trajetórias do Grid2Op saíram idênticas bit a bit em pandas
+  3.0.2 e 2.3.3. Os dados são baixados no primeiro uso
+  (`~/.cache/citylearn`, ~3 MB; `~/data_grid2op`, ~300 MB).
+- O `tabpfn` (no lock desde o PR #1) não estava instalado no ambiente
+  `projeto-rl`; foi instalado.
+
+### Testes e smoke
+
+- `pytest`: 304 testes passam. Novos contra verdade conhecida: observação do
+  CityLearn igual à linha do CSV da casa; +0,2 a partir da bateria vazia
+  compra exatamente 1 kWh e a recompensa é −preço × max(consumo líquido, 0);
+  energia exportada vale 0; recompensa do Grid2Op × 20 linhas igual ao
+  `L2RPNReward` da fonte; máscara igual ao que as regras da fonte aceitam
+  (`is_illegal` do `simulate`); blackout terminal e fim do dia truncado; a
+  regra escolhe a menor carga simulada.
+- Smoke `wide-dev.json` (48 runs): passou em todas as runs, menos nas
+  `tabpfn` (abaixo). Três runs de Grid2Op deram falta de memória na GPU 0
+  (outro usuário com 19 GB) e passaram ao rodar de novo na GPU 1.
+
+### Limitação conhecida: `tabpfn` sem a licença do TabPFN-3.5
+
+Sem a licença aceita, o `tabpfn` cai para o TabPFN-2, que aceita no máximo 10
+classes; as classes são as ações registradas. Nesta máquina, as runs `tabpfn`
+de todos os ambientes com mais de 10 ações (todos menos o SimBank) falham
+com `TabPFNValidationError`. Para rodar: aceitar a licença em
+https://ux.priorlabs.ai e exportar `TABPFN_TOKEN` antes do `run-all`.
+
+### Tempos medidos e estimativa do `wide.json` (144 runs)
+
+Smoke `wide-dev` com 8 jobs, GPU 0 a 100% por outro usuário: CityLearn ≈
+750 s por run, Grid2Op ≈ 1050 s. O gargalo do Grid2Op é a avaliação: a
+política gulosa faz uma chamada à GPU por episódio e por passo (≈ 5 ms cada
+com a GPU disputada), e o `final` avalia 1000 episódios em vez de 100.
+Estimativa por run no `final`: CityLearn ≈ 1100 s, Grid2Op ≈ 2700 s. Coleta
+dos dois datasets ≈ 25 min (Grid2Op domina) e baselines ≈ 15 min. Com 8 jobs:
+**≈ 8 h sem `tabpfn` e ≈ 10 h com**. Cada run de `tjepa` no Grid2Op ocupa
+6–8 GB de GPU e ≈ 15 GB de RAM.
+
+### Comando
+
+```bash
+cd /scratch/pedrobacelar/projeto-rl && conda activate projeto-rl
+export TABPFN_TOKEN=<chave da conta em ux.priorlabs.ai>   # sem ela, as 24 runs tabpfn falham
+nohup projeto-rl run-all configs/experiments/wide.json --gpus 1 --jobs 8 > artifacts/run-all-wide.log 2>&1 &
+```
+
+Se alguma run falhar por falta de memória na GPU, rodar o mesmo comando de
+novo: as runs completas são reaproveitadas.

@@ -2,10 +2,10 @@
 
 Regras para trabalhar neste repositório:
 um projeto de matéria que pergunta se uma representação vetorial melhor dos
-estados tabulares melhora o retorno de RL offline. Quatro simuladores
-(`epicare`, `industrial-benchmark`, `simbank`, `sales-promotion`), quatro
-métodos clássicos (`bc`, `dqn`, `iql`, `cql`), avaliação só no simulador
-online (sem OPE).
+estados tabulares melhora o retorno de RL offline. Seis simuladores
+(`epicare`, `industrial-benchmark`, `simbank`, `sales-promotion`, `citylearn`,
+`grid2op`), quatro métodos clássicos (`bc`, `dqn`, `iql`, `cql`), avaliação só
+no simulador online (sem OPE).
 
 ## Onde está o plano
 
@@ -71,7 +71,7 @@ silêncio.
 
 ```bash
 conda activate projeto-rl
-pip install -r requirements-lock.txt && pip install -e . --no-deps   # instalação
+pip install -r requirements-lock.txt && pip install --no-deps -r requirements-nodeps.txt && pip install -e . --no-deps   # instalação
 pytest                                                              # testes (GPU 0 se livre)
 pytest -m "not slow"                                                # verificação rápida
 pre-commit run --all-files                                          # ruff

@@ -11,6 +11,7 @@ from projeto_rl.data.collect import collect_dataset
 from projeto_rl.paths import CONFIG_ROOT
 
 SIMBANK_KWARGS = json.loads((CONFIG_ROOT / "envs" / "simbank.json").read_text())["run"]["env_kwargs"]
+GRID2OP_KWARGS = json.loads((CONFIG_ROOT / "envs" / "grid2op.json").read_text())["run"]["env_kwargs"]
 
 TINY_DATASETS = {
     "epicare": {
@@ -45,6 +46,35 @@ TINY_DATASETS = {
         "gamma": 1.0,
         "behavior_policy": "bank",
         "behavior_epsilon": 0.1,
+    },
+    "citylearn": {
+        "env_id": "citylearn",
+        "env_kwargs": {
+            "dataset": "citylearn_challenge_2022_phase_all",
+            "buildings": {"collect": [1, 2], "evaluate": [3]},
+            "horizon": 12,
+            "action_levels": 11,
+            "random_seed": 2022,
+        },
+        "gamma": 0.99,
+        "behavior_policy": "time_of_use",
+        "behavior_epsilon": 0.1,
+        "tou_charge_hours": [10, 11, 12, 13, 14, 15],
+        "tou_charge_level": 0.2,
+        "tou_discharge_hours": [16, 17, 18, 19, 20],
+        "tou_discharge_level": -0.4,
+    },
+    # More exploration and shorter days than the real dataset, found by trying:
+    # every one of the 153 columns varies in six episodes (standardize rejects
+    # constant columns), and the TabPFN-2 context of the tests holds at most the
+    # 10 actions that TabPFN-2 accepts as classes.
+    "grid2op": {
+        "env_id": "grid2op",
+        "env_kwargs": {**GRID2OP_KWARGS, "scenarios": {"collect": [0, 50], "evaluate": [50, 100]}, "horizon": 120},
+        "gamma": 0.99,
+        "behavior_policy": "rule",
+        "behavior_epsilon": 0.3,
+        "rule_threshold": 0.9,
     },
 }
 ENV_KEYS = {"env_id", "env_kwargs", "environment_seed", "gamma"}

@@ -1,7 +1,9 @@
 {
   "description": "Smoke test: every environment, method, and representation on the small dev datasets, one seed.",
   "datasets": [
+    "citylearn/time-of-use/dev",
     "epicare/soc/dev",
+    "grid2op/rule/dev",
     "industrial-benchmark/mediocre/dev",
     "sales-promotion/ticket-band/dev",
     "simbank/bank/dev"

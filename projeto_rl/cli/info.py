@@ -17,7 +17,21 @@ from projeto_rl.paths import PROJECT_ROOT
 def doctor(args) -> int:
     console = common.console(args)
     packages = {}
-    for name in ("numpy", "pandas", "scipy", "torch", "gymnasium", "rich", "simpy", "pm4py", "epicare"):
+    for name in (
+        "numpy",
+        "pandas",
+        "scipy",
+        "torch",
+        "gymnasium",
+        "rich",
+        "simpy",
+        "pm4py",
+        "epicare",
+        "tabpfn",
+        "citylearn",
+        "grid2op",
+        "lightsim2grid",
+    ):
         try:
             packages[name] = getattr(importlib.import_module(name), "__version__", "available")
         except Exception as exc:  # noqa: BLE001 - report any import failure

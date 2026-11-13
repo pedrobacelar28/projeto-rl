@@ -1,0 +1,26 @@
+{
+  "description": "Smoke test of the two wide environments: wide.json on the small dev datasets, one seed.",
+  "datasets": [
+    "citylearn/time-of-use/dev",
+    "grid2op/rule/dev"
+  ],
+  "methods": [
+    "bc",
+    "dqn",
+    "iql",
+    "cql"
+  ],
+  "representations": [
+    "raw",
+    "standardize",
+    "spr",
+    "tjepa",
+    "tabpfn",
+    "tdjepa"
+  ],
+  "reference_representation": "standardize",
+  "seeds": [
+    0
+  ],
+  "progress_interval_seconds": 30
+}

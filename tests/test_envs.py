@@ -161,6 +161,9 @@ EPISODE_ENDS = {
     "sales_promotion": {"terminals"},
     "simbank": {"terminals"},
     "epicare": {"terminals", "timeouts"},
+    "citylearn": {"timeouts"},
+    # A blackout is terminal; surviving the day is a time limit.
+    "grid2op": {"terminals", "timeouts"},
 }
 
 
@@ -178,7 +181,7 @@ def test_time_limits_are_logged_as_timeouts_not_terminals(env_id, tiny_datasets)
         assert not terminals[rows[:-1]].any() and not timeouts[rows[:-1]].any()
         assert terminals[last] != timeouts[last]
         seen.add("terminals" if terminals[last] else "timeouts")
-        if env_id == "industrial_benchmark":
+        if env_id in ("industrial_benchmark", "citylearn"):
             assert len(rows) == TINY_DATASETS[env_id]["env_kwargs"]["horizon"]
         if env_id == "epicare" and timeouts[last]:
             assert len(rows) == 8  # EpiCare's max_visits

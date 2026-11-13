@@ -26,7 +26,7 @@ def test_catalog_is_every_behavior_times_every_tier(bench):
         slug = bench.environments[env_id]["slug"]
         expected = {f"{slug}/{behavior}/{tier}" for behavior in spec["behaviors"] for tier in spec["tiers"]}
         assert expected == {entry.identifier for entry in bench.datasets if entry.env_id == env_id}
-    assert len(bench.datasets) == 8
+    assert len(bench.datasets) == 12
 
 
 def test_every_registered_algorithm_runs_on_every_dataset(bench):
@@ -115,7 +115,13 @@ def test_experiments_load_and_reject_unknown_keys(tmp_path):
         "tdjepa",
     ]
     assert final["reference_representation"] == "standardize"
-    assert len(final["datasets"]) * len(final["methods"]) * len(final["representations"]) * len(final["seeds"]) == 288
+    assert len(final["datasets"]) * len(final["methods"]) * len(final["representations"]) * len(final["seeds"]) == 432
+    # wide.json is final.json restricted to the two wide environments.
+    wide = load_experiment("configs/experiments/wide.json")
+    assert wide["datasets"] == ["citylearn/time-of-use/final", "grid2op/rule/final"]
+    assert {key: wide[key] for key in ("methods", "representations", "reference_representation", "seeds")} == {
+        key: final[key] for key in ("methods", "representations", "reference_representation", "seeds")
+    }
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({**json.loads((CONFIG_ROOT / "experiments" / "dev.json").read_text()), "tier": "x"}))
     with pytest.raises(ConfigError, match="unknown keys"):

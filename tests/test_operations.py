@@ -49,7 +49,7 @@ def test_unknown_method_is_a_clean_error(capsys):
 def test_module_entry_point():
     command = [sys.executable, "-m", "projeto_rl", "catalog", "--json"]
     payload = json.loads(subprocess.run(command, text=True, capture_output=True, check=True).stdout)
-    assert len(payload["datasets"]) == 8
+    assert len(payload["datasets"]) == 12
 
 
 def test_manifest_lifecycle_and_stale_detection(tmp_path):
