@@ -7,7 +7,8 @@
 ``envs/<env_id>.json``           environment identity, run settings, and score normalization
 ``datasets/<env_id>.json``       behavior policy x size tiers of one environment
 ``experiments/<name>.json``      datasets x methods x representations x seeds of one experiment,
-                                 and the reference representation the others are compared to
+                                 the reference representation the others are compared to, and
+                                 optionally the share of the episodes the methods train on
 
 A run config is resolved as protocol -> algorithm -> environment run
 settings -> CLI ``--set``. Within any layer, a ``tiers`` object holds values
@@ -276,6 +277,10 @@ EXPERIMENT_KEYS = {
     "seeds",
     "progress_interval_seconds",
 }
+# Optional: the share of the train (and validation) episodes the methods see.
+# An experiment without it trains on every episode and its run configs do not
+# carry the key, so their identity is the one they always had.
+OPTIONAL_EXPERIMENT_KEYS = {"train_episode_fraction"}
 
 
 def load_experiment(path: str | Path) -> dict[str, Any]:
@@ -284,7 +289,7 @@ def load_experiment(path: str | Path) -> dict[str, Any]:
     path = Path(path)
     path = path if path.is_absolute() else PROJECT_ROOT / path
     payload = _read(path)
-    unknown = sorted(set(payload) - EXPERIMENT_KEYS)
+    unknown = sorted(set(payload) - EXPERIMENT_KEYS - OPTIONAL_EXPERIMENT_KEYS)
     missing = sorted(EXPERIMENT_KEYS - {"description"} - set(payload))
     if unknown or missing:
         raise ConfigError(f"Experiment {path} has unknown keys {unknown} or misses {missing}")
@@ -296,6 +301,9 @@ def load_experiment(path: str | Path) -> dict[str, Any]:
             f"Experiment {path}: reference_representation {payload['reference_representation']!r} "
             f"is not one of its representations {payload['representations']}"
         )
+    fraction = payload.get("train_episode_fraction")
+    if fraction is not None and not (isinstance(fraction, (int, float)) and 0.0 < fraction < 1.0):
+        raise ConfigError(f"Experiment {path}: train_episode_fraction must be a number in (0, 1), got {fraction!r}")
     return {
         "path": path,
         "description": str(payload.get("description", "")),
@@ -305,4 +313,5 @@ def load_experiment(path: str | Path) -> dict[str, Any]:
         "reference_representation": str(payload["reference_representation"]),
         "seeds": [int(item) for item in payload["seeds"]],
         "progress_interval_seconds": float(payload["progress_interval_seconds"]),
+        "train_episode_fraction": None if fraction is None else float(fraction),
     }

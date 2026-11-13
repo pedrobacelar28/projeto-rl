@@ -67,6 +67,9 @@ class OfflineTransitionDataset:
         if self.size == 0:
             raise ValueError(f"Offline dataset {self.path} is empty")
         self.rng = np.random.default_rng(seed)
+        self._index_episodes()
+
+    def _index_episodes(self) -> None:
         episode_ids = self.data["episode_ids"]
         #: Transition indices of every episode, in timestep order.
         self.episode_indices = [
@@ -119,6 +122,25 @@ class OfflineTransitionDataset:
 
         for key in ("observations", "next_observations"):
             self.data[key] = representation.transform(self.data[key])
+
+    def keep_episode_fraction(self, fraction: float, *, seed: int) -> None:
+        """Keep ``round(fraction * num_episodes)`` whole episodes, in memory.
+
+        The kept episodes are the first ones of a shuffle that depends only on
+        ``seed`` and the number of episodes, so a smaller fraction keeps a
+        subset of what a larger one keeps. Transitions stay in storage order.
+        """
+
+        if not 0.0 < fraction <= 1.0:
+            raise ValueError(f"The episode fraction must be in (0, 1], got {fraction}")
+        count = round(fraction * self.num_episodes)
+        if count == 0:
+            raise ValueError(f"{self.path}: a fraction of {fraction} keeps none of its {self.num_episodes} episodes")
+        order = np.random.default_rng(seed).permutation(self.num_episodes)
+        kept = np.sort(np.concatenate([self.episode_indices[episode] for episode in order[:count]]))
+        self.data = {key: values[kept] for key, values in self.data.items()}
+        self.size = len(kept)
+        self._index_episodes()
 
     def mean_abs_reward(self) -> float:
         """Mean ``|reward|`` per transition, the training reward unit (fitted on the train split)."""

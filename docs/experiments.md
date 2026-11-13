@@ -102,3 +102,23 @@ experiment. `projeto-rl run-all <file>` runs datasets, baselines, training, and 
 summary; `projeto-rl research matrix <file> --execute` runs only the training, and
 `projeto-rl research summarize <file>` rebuilds the summary of the experiment's
 runs (only those, so runs of an older protocol never enter the tables).
+
+### Low-data control
+
+An experiment may add `"train_episode_fraction": <share in (0, 1)>`. Its runs
+then fit the representation on the whole train split, as always, and train
+the method on that share of the train episodes only; the checkpoint is
+selected on the same share of the validation episodes, and the reward unit is
+the mean `|reward|` of the kept train transitions. The kept episodes are
+whole episodes: the first `round(share x episodes)` of a shuffle that depends
+only on the run's seed, so the 1% of a seed is inside its 5%, and that inside
+its 10%. Evaluation, baselines, and score normalization do not change, so the
+scores are comparable with the full-data ones.
+
+`low-data-01.json`, `low-data-05.json`, and `low-data-10.json` are the final
+experiment at 1%, 5%, and 10% for `standardize`, `tjepa`, `tabpfn`, and
+`tdjepa`, on EpiCare, Industrial Benchmark, SalesPromotion, and SimBank (the
+two wide environments are not in them). They ask whether a representation learned from all the logged
+transitions helps a method that has few of them. The share is part of the
+run identity; an experiment without the key resolves the same run configs,
+and so the same run directories, as before the key existed.

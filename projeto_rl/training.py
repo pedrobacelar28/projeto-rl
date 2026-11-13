@@ -2,7 +2,9 @@
 
 The run's representation and reward scale are fitted on the train split
 only, frozen, and applied to both splits before the algorithm sees any
-batch. Model selection is purely offline: the validation split's loss
+batch. With ``train_episode_fraction`` the representation still sees the
+whole train split, and the algorithm only a sample of the episodes of each
+split. Model selection is purely offline: the validation split's loss
 decides the best checkpoint and early stopping. The simulator is never consulted during
 training; it is used only by the final evaluation in :mod:`projeto_rl.runner`.
 """
@@ -84,12 +86,20 @@ def train_offline(config: dict[str, Any]) -> TrainResult:
         raise ValueError("Train and validation splits declare different features")
     representation = build_representation(config, train_data.features)
     representation.fit(train_data, seed=int(config["seed"]))
+    fraction = config.get("train_episode_fraction")
+    if fraction is not None:
+        # Low-data control: the representation was fitted on every train
+        # transition; the algorithm learns from a sample of the episodes, and
+        # selects its checkpoint on the same share of the validation episodes.
+        train_data.keep_episode_fraction(float(fraction), seed=int(config["seed"]))
+        val_data.keep_episode_fraction(float(fraction), seed=int(config["seed"]) + 100_000)
     train_data.apply_representation(representation)
     val_data.apply_representation(representation)
     # Rewards are measured in units of the train split's mean |reward|, so the
     # Q-values have a comparable scale on every environment (an Industrial
     # Benchmark step costs about 200; a SimBank step pays 0.7 on average).
     # Only training sees the scaled reward; evaluation reports the raw return.
+    # The unit comes from the transitions the algorithm trains on.
     reward_scale = train_data.mean_abs_reward()
     train_data.scale_rewards(reward_scale)
     val_data.scale_rewards(reward_scale)

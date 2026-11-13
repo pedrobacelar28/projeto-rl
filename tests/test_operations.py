@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import shutil
@@ -11,6 +12,8 @@ import sys
 import pytest
 
 from projeto_rl.cli import main
+from projeto_rl.cli.research import experiment_jobs
+from projeto_rl.config import load_experiment
 from projeto_rl.operations.artifacts import effective_status, initial_manifest, run_directory, write_manifest
 from projeto_rl.operations.baselines import baseline_path
 from projeto_rl.operations.queue import _write_suite_results, estimate_remaining_seconds
@@ -227,6 +230,24 @@ def _tiny_config_root(tmp_path):
     }
     (root / "experiments" / "tiny.json").write_text(json.dumps(experiment))
     return root
+
+
+def test_an_experiment_episode_fraction_is_part_of_the_run_identity(tmp_path):
+    root, artifacts = _tiny_config_root(tmp_path), tmp_path / "artifacts"
+    plain = json.loads((root / "experiments" / "tiny.json").read_text())
+    (root / "experiments" / "low.json").write_text(json.dumps({**plain, "train_episode_fraction": 0.5}))
+    args = argparse.Namespace(
+        config_root=str(root), artifact_root=str(artifacts), overrides=[], no_progress=True, device="cpu", force=False
+    )
+    full = experiment_jobs(args, load_experiment(root / "experiments" / "tiny.json"))
+    low = experiment_jobs(args, load_experiment(root / "experiments" / "low.json"))
+    assert [job.name for job in low] == [job.name for job in full] and len(full) == 4
+    for full_job, low_job in zip(full, low):
+        # An experiment without the key resolves the configs, and so the run directories, it always did.
+        assert "train_episode_fraction" not in full_job.params
+        assert low_job.params == {**full_job.params, "train_episode_fraction": 0.5}
+        assert low_job.output_dir != full_job.output_dir
+        assert low_job.output_dir == str(run_directory(low_job.params, root=artifacts))
 
 
 @pytest.mark.slow

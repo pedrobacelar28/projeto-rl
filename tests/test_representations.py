@@ -96,6 +96,30 @@ def test_training_fits_on_the_train_split_only(tiny_datasets, tmp_path):
     assert train_offline(swapped).best_checkpoint["representation_state"] == state
 
 
+def test_an_episode_fraction_shrinks_what_the_method_sees_and_not_what_the_representation_fits(tiny_datasets):
+    root = tiny_datasets["epicare"]
+    config = tiny_run_config("dqn", "epicare", root, representation="standardize")
+    full, half = train_offline(config), train_offline({**config, "train_episode_fraction": 0.5})
+    # The representation is the one fitted on the whole train split.
+    train = OfflineTransitionDataset(root / "train.npz")
+    np.testing.assert_allclose(
+        half.best_checkpoint["representation_state"]["fitted"]["mean"],
+        train.observations.astype(np.float64).mean(axis=0),
+    )
+    assert half.best_checkpoint["representation_state"] == full.best_checkpoint["representation_state"]
+    # The method trains on 3 of the 6 train episodes and is selected on 2 of the 3 validation ones
+    # (the run's seed is 0; the validation shuffle uses the seed of the validation split).
+    kept, kept_val = OfflineTransitionDataset(root / "train.npz"), OfflineTransitionDataset(root / "val.npz")
+    kept.keep_episode_fraction(0.5, seed=0)
+    kept_val.keep_episode_fraction(0.5, seed=100_000)
+    summary = half.summary
+    assert (summary["train_dataset_episodes"], summary["val_dataset_episodes"]) == (3, 2)
+    assert summary["train_dataset_transitions"] == len(kept) < len(train) == full.summary["train_dataset_transitions"]
+    assert summary["val_dataset_transitions"] == len(kept_val) < full.summary["val_dataset_transitions"]
+    # The reward unit is the one of the transitions the method trains on.
+    assert summary["reward_scale"] == kept.mean_abs_reward()
+
+
 class _Recorder(Policy):
     def __init__(self):
         super().__init__()
