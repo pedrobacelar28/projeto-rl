@@ -22,12 +22,14 @@ def sweep(args) -> int:
 def experiment_jobs(args, experiment: dict) -> list:
     """One queue job per dataset x method x representation x seed of ``experiment``."""
 
+    fraction = experiment["train_episode_fraction"]
     return queue_jobs(
         args,
         dataset_ids=experiment["datasets"],
         methods=experiment["methods"],
         seeds=experiment["seeds"],
         representations=experiment["representations"],
+        experiment_overrides=None if fraction is None else {"train_episode_fraction": fraction},
     )
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from projeto_rl.cli import common
 from projeto_rl.cli.data import inspect_dataset
 from projeto_rl.cli.reporting import build_run_report
@@ -63,6 +65,7 @@ def queue_jobs(
     methods: list[str] | None,
     seeds: list[int],
     representations: list[str] | None = None,
+    experiment_overrides: dict[str, Any] | None = None,
 ) -> list[QueueJob]:
     """One job per dataset x method x representation x seed; ``None`` keeps the configured representation."""
 
@@ -73,7 +76,12 @@ def queue_jobs(
             for representation in representations or [None]:
                 for seed in seeds:
                     run = common.prepare_run(
-                        args, dataset_id=dataset_id, method_id=method_id, seed=seed, representation=representation
+                        args,
+                        dataset_id=dataset_id,
+                        method_id=method_id,
+                        seed=seed,
+                        representation=representation,
+                        experiment_overrides=experiment_overrides,
                     )
                     params = run["params"]
                     jobs.append(

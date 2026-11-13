@@ -21,6 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r requirements-lock.txt
+          python -m pip install --no-deps -r requirements-nodeps.txt
           python -m pip install -e . --no-deps
       - name: Quick tests
         run: pytest -m "not slow"

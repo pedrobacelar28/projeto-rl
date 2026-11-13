@@ -115,12 +115,18 @@ def data_preflight(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def prepare_run(
-    args: argparse.Namespace, *, dataset_id: str, method_id: str, seed: int | None, representation: str | None = None
+    args: argparse.Namespace,
+    *,
+    dataset_id: str,
+    method_id: str,
+    seed: int | None,
+    representation: str | None = None,
+    experiment_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Resolve one run: params, output directory, manifest, and data preflight."""
 
     bench = benchmark(args)
-    overrides = parse_overrides(args.overrides)
+    overrides = {**parse_overrides(args.overrides), **(experiment_overrides or {})}
     if representation is not None:
         overrides["representation"] = representation
     params = bench.run_config(dataset_id, method_id, artifact_root=root(args), seed=seed, overrides=overrides)

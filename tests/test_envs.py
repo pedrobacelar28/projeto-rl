@@ -143,6 +143,43 @@ def test_collected_dataset_schema_features_and_splits(env_id, tiny_datasets):
         feature.check(dataset.observations[:, index])
 
 
+def _kept_episodes(path, fraction: float, seed: int) -> OfflineTransitionDataset:
+    dataset = OfflineTransitionDataset(path)
+    dataset.keep_episode_fraction(fraction, seed=seed)
+    return dataset
+
+
+def test_an_episode_fraction_keeps_whole_episodes_of_a_seeded_shuffle(tiny_datasets):
+    path = tiny_datasets["simbank"] / "train.npz"
+    full = OfflineTransitionDataset(path)
+    episodes = np.unique(full.data["episode_ids"])
+    assert len(episodes) == 6
+    # The rule, redone here: the first episodes of a shuffle that depends on the seed and the count only.
+    order = np.random.default_rng(7).permutation(6)
+    kept_ids = []
+    for fraction, count in ((1 / 3, 2), (2 / 3, 4), (1.0, 6)):
+        dataset = _kept_episodes(path, fraction, seed=7)
+        rows = np.isin(full.data["episode_ids"], episodes[order[:count]])
+        assert dataset.num_episodes == count and len(dataset) == rows.sum()
+        # Every array keeps exactly the rows of those episodes, in storage order.
+        for key, values in full.data.items():
+            np.testing.assert_array_equal(dataset.data[key], values[rows], err_msg=key)
+        # The episode index is rebuilt: one episode per entry, in timestep order, covering every row once.
+        for indices in dataset.episode_indices:
+            assert len(set(dataset.data["episode_ids"][indices].tolist())) == 1
+            assert (np.diff(dataset.data["timesteps"][indices]) > 0).all()
+        assert sorted(np.concatenate(dataset.episode_indices).tolist()) == list(range(len(dataset)))
+        kept_ids.append(set(dataset.data["episode_ids"].tolist()))
+    # A smaller fraction is a subset of a larger one.
+    assert kept_ids[0] < kept_ids[1] < kept_ids[2] == set(episodes.tolist())
+    assert len({frozenset(_kept_episodes(path, 1 / 3, seed).data["episode_ids"].tolist()) for seed in range(6)}) > 1
+    for fraction in (0.0, 1.5):
+        with pytest.raises(ValueError, match=r"must be in \(0, 1\]"):
+            full.keep_episode_fraction(fraction, seed=0)
+    with pytest.raises(ValueError, match="keeps none of its 6 episodes"):
+        full.keep_episode_fraction(0.01, seed=0)
+
+
 @pytest.mark.parametrize("env_id", ENVIRONMENTS)
 def test_dataset_collection_is_deterministic(env_id, tmp_path):
     for name in ("a", "b"):

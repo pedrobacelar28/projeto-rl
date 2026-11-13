@@ -8,8 +8,9 @@ configs/
   algorithms/<algo>.json     default hyperparameters of one algorithm
   envs/<env_id>.json         identity, run settings, feature_mix, normalization
   datasets/<env_id>.json     behavior policy x size tiers of one environment
-  experiments/<name>.json    datasets x methods x representations x seeds, and the
-                             reference representation the others are compared to
+  experiments/<name>.json    datasets x methods x representations x seeds, the
+                             reference representation the others are compared to, and
+                             optionally `train_episode_fraction` (low-data control)
 ```
 
 ## How a run config is resolved

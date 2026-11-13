@@ -140,6 +140,36 @@ def test_experiments_load_and_reject_unknown_keys(tmp_path):
         load_experiment(bad)
 
 
+def test_low_data_experiments_only_change_the_share_of_episodes(tmp_path):
+    final = load_experiment("configs/experiments/final.json")
+    assert final["train_episode_fraction"] is None
+    for name, fraction in (("low-data-01", 0.01), ("low-data-05", 0.05), ("low-data-10", 0.10)):
+        experiment = load_experiment(f"configs/experiments/{name}.json")
+        assert experiment["train_episode_fraction"] == fraction
+        assert experiment["representations"] == ["standardize", "tjepa", "tabpfn", "tdjepa"]
+        # The four environments of the first final experiment; the two wide ones were added later.
+        assert experiment["datasets"] == [
+            "epicare/soc/final",
+            "industrial-benchmark/mediocre/final",
+            "sales-promotion/ticket-band/final",
+            "simbank/bank/final",
+        ]
+        for key in ("methods", "seeds", "reference_representation"):
+            assert experiment[key] == final[key], key
+    bad = tmp_path / "bad.json"
+    for fraction in (0, 1, 1.5, "0.1"):
+        bad.write_text(
+            json.dumps(
+                {
+                    **json.loads((CONFIG_ROOT / "experiments" / "dev.json").read_text()),
+                    "train_episode_fraction": fraction,
+                }
+            )
+        )
+        with pytest.raises(ConfigError, match="train_episode_fraction must be a number in"):
+            load_experiment(bad)
+
+
 def test_layer_and_merge_helpers():
     assert layer({"a": 1, "description": "x", "tiers": {"dev": {"a": 2, "b": {"c": 3}}}}, "dev") == {
         "a": 2,
